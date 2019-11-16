@@ -1,4 +1,14 @@
-CREATE TABLE user(
+CREATE TABLE receipt(
+    id SERIAL NOT NULL,
+    receipt_id BIGINT,
+    customer_id BIGINT,
+    ean BIGINT,
+    transaction_date VARCHAR,
+    quantity BIGINT,
+    PRIMARY KEY (id)
+);
+
+CREATE TABLE customer (
     id SERIAL NOT NULL,
     customer_id BIGINT UNIQUE
     PRIMARY KEY (id)

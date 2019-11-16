@@ -21,35 +21,21 @@ print(len(rows))
 cur = con.cursor()
 
 
-with open('/home/nikita/Junction-Kesko-Receipt-Data/Junction_data.csv') as f:
-    spamreader = csv.reader(f, delimiter=';', quotechar='"')
+with open('/home/nikita/Downloads/Telegram Desktop/mock_receipt_data.csv') as f:
+    spamreader = csv.reader(f, delimiter=',')
     print('file read')
     i = 0
 
-    step = 100000
-    current = 0
-    chunks = grouper(spamreader, step)
-    for chunk in chunks:
+    for row in spamreader:
         if i == 0:
             i += 1
             continue
-        rows = ""
-        for row in chunk:
-            single_row = f"""({row[0]}, {row[1]}, '{row[2]}', '{row[3]}', '{row[4]}', '{row[5]}', '{row[6]}', {row[7]}, '{row[8]}', '{row[9]}')"""
-            if single_row is None:
-                continue
-            rows += single_row
-            rows += ','
-        rows = rows[:-1]
+    
+        single_row = f"""({row[0]}, {row[1]}, {row[2]}, '{row[3]}', {row[4]})"""
         query = f"""
-        INSERT INTO receipt (AreaId,Receipt,TransactionDate,BeginHour,EAN,Quantity,PersonAgeGrp,KCustomer,QualClass,EasyClass) VALUES {rows};"""
+        INSERT INTO receipt (receipt_id, customer_id, ean, transaction_date, quantity) VALUES {single_row};"""
         cur.execute(query)
-        current += step
-        print(current)
-        if current % (step * 10) == 0:
-            print("commit")
-            con.commit()
-    con.commit()
+        con.commit()
     # for row in spamreader:
     #     if i == 0:
     #         i += 1
