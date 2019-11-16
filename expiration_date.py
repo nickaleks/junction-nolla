@@ -42,26 +42,12 @@ food_subcategories = {
 }
 
 def get_shelf_time(product):
-    category = str(product.get('category', {}).get('id'))
-    subcategory = str(product.get('subcategory', {}).get('id'))
+    category = str(product.get('category_id'))
+    subcategory = str(product.get('subcategory_id'))
     if subcategory in food_subcategories:
         return food_subcategories[subcategory]
 
     if category in food_categories:
         return food_categories[category]
 
-    return 600
-
-def calc_exp_time(product):
-    today = datetime.today()
-    created_at = product.get('transaction_date') or today #check that transaction date in datetime
-    delta = today - created_at
-    return get_shelf_time(product) - delta.days
-
-def add_shelf_and_exp_time(product):
-    upd = {'shelf_time': get_shelf_time(product),
-           'exp_time': calc_exp_time(product)}
-    product.update(upd)
-    return product
-
-#list(map(add_shelf_and_exp_time, [{}]))
+    return 99999

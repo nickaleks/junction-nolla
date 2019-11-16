@@ -1,6 +1,7 @@
 import psycopg2
 import api
 from datetime import datetime
+from expiration_date import get_shelf_time
 
 con = psycopg2.connect(database="postgres", user="postgres", password="mysecretpassword", host="40.118.124.20", port="5432")
 
@@ -103,7 +104,9 @@ def get_product_by_id(product_id):
     carbs ,
     picture_url ,
     category_id ,
-    subcategory_id FROM product WHERE id = {product_id}"""
+    subcategory_id,
+    price,
+    shelf_time FROM product WHERE id = {product_id}"""
     cursor = con.cursor()
     cursor.execute(query)
     product = cursor.fetchone()
@@ -130,22 +133,36 @@ def get_product_by_id(product_id):
         'carbs': product[17],
         'picture_url': product[18],
         'category_id': product[19],
-        'subcategory_id': product[20]
+        'subcategory_id': product[20],
+        'price': product[21],
+        'shelf_time': product[22]
     }
 
+def calc_exp_time(action):
+    today = datetime.today()
+    created_at = action.get('action_date')
+    created_at = datetime.strptime(created_at, '%Y-%m-%d %H:%M:%S.%f')
+    delta = today - created_at
+    product_id = action['product_id']
+    shelf_time = get_product_by_id(product_id)['shelf_time']
+    return shelf_time - delta.days
 
 def get_current_products(user_id):
     actions = get_user_actions(user_id)
     purchases = {}
     for action in actions:
         if action['action_type'] == action_buy:
-            purchases[action['purchase_id']] = {'product': get_product_by_id(action['product_id']), 'amount_left': action['amount'], 'purchase_id': action['purchase_id']}
-    
+            purchases[action['purchase_id']] = {
+                'product': get_product_by_id(action['product_id']),
+                'amount_left': action['amount'],
+                'purchase_id': action['purchase_id'],
+                'exp_time': calc_exp_time(action)}
+
     for action in actions:
         if action['action_type'] != action_buy:
             if purchases[action['purchase_id']]:
                 purchases[action['purchase_id']]['amount_left'] -= action['amount']
-            
+
     return list(purchases.values())
 
 def get_user_actions(user_id):
@@ -207,7 +224,9 @@ def add_product(product):
     carbs ,
     picture_url ,
     category_id ,
-    subcategory_id) 
+    subcategory_id ,
+    price ,
+    shelf_time)
     VALUES (
     %(ean)s,
     %(name)s,
@@ -228,7 +247,9 @@ def add_product(product):
     %(carbs)s,
     %(picture_url)s,
     %(category_id)s,
-    %(subcategory_id)s) RETURNING id
+    %(subcategory_id)s,
+    %(price)s,
+    %(shelf_time)s) RETURNING id
     """
     cursor = con.cursor()
     cursor.execute(query, product)
@@ -257,7 +278,9 @@ def get_product(ean):
     carbs ,
     picture_url ,
     category_id ,
-    subcategory_id FROM product WHERE ean = {ean}"""
+    subcategory_id,
+    price,
+    shelf_time FROM product WHERE ean = {ean}"""
     cursor = con.cursor()
     cursor.execute(query)
     product = cursor.fetchone()
@@ -284,7 +307,9 @@ def get_product(ean):
         'carbs': product[17],
         'picture_url': product[18],
         'category_id': product[19],
-        'subcategory_id': product[20]
+        'subcategory_id': product[20],
+        'price': product[21],
+        'shelf_tife': product[22]
     }
 
 def add_action(action):
@@ -336,3 +361,12 @@ def process_receipts(user_id):
 def create_action(action):
     add_action(action)
     return {}
+
+def update_price(ean, price):
+    query = f"""UPDATE product
+    SET price = {price}
+    WHERE ean = {ean}"""
+    cursor = con.cursor()
+    cursor.execute(query)
+    con.commit()
+    cursor.close()
