@@ -12,18 +12,44 @@ def get_inbox(user_id):
     # process_receipts(user_id)
     user = get_user(user_id)
     current_products = get_current_products(user_id)
-    return {'products': current_products, 'recipes': [], 'daily_goal': {}}
-    # return process_receipts(user_id)
+    daily_goal = get_daily_goal_progress(user)
+    return {'products': current_products, 'recipes': [], 'daily_goal': {
+        'goal': daily_goal[0],
+        'progress': daily_goal[1]
+    }}
 
 def get_user(user_id):
-    query = f"SELECT id, customer_id FROM customer WHERE id = {user_id}"
+    query = f"SELECT id, customer_id, name, daily_goal_id FROM customer WHERE id = {user_id}"
     cursor = con.cursor()
     cursor.execute(query)
     user = cursor.fetchone()
+    con.commit()
     cursor.close()
     if not user:
         return None
-    return {'id': user[0], 'customer_id': user[1] }
+    return {'id': user[0], 'customer_id': user[1], 'name': user[2], 'daily_goal_id': user[3] }
+
+def get_daily_goal_progress(user):
+    query = f"SELECT calories FROM daily_goal WHERE id = {user['daily_goal_id']}"
+    cursor = con.cursor()
+    cursor.execute(query)
+    calories = cursor.fetchone()[0]
+    con.commit()
+    cursor.close()
+    actions = get_user_actions(user['id'])
+    progress = 0
+    for action in actions:
+        if action['action_type'] == action_eat and today(action['action_date']):
+            product = get_product_by_id(action['product_id'])
+            # kcal / 100 * weight * quantity
+            cal = float(product['energy_kcal'])
+            weight = float(product['weight'])
+            quantity = action['amount']
+            eaten = int(cal / 100.0 * weight * quantity)
+            progress += eaten
+    return calories, progress
+            
+
 
 def get_product_by_id(product_id):
     query = f"""SELECT 
@@ -51,6 +77,7 @@ def get_product_by_id(product_id):
     cursor = con.cursor()
     cursor.execute(query)
     product = cursor.fetchone()
+    con.commit()
     cursor.close()
     return {
         'id': product[0],
@@ -82,7 +109,7 @@ def get_current_products(user_id):
     purchases = {}
     for action in actions:
         if action['action_type'] == action_buy:
-            purchases[action['purchase_id']] = {'product': get_product_by_id(action['product_id']), 'amount_left': action['amount']}
+            purchases[action['purchase_id']] = {'product': get_product_by_id(action['product_id']), 'amount_left': action['amount'], 'purchase_id': action['purchase_id']}
     
     for action in actions:
         if action['action_type'] != action_buy:
@@ -96,6 +123,7 @@ def get_user_actions(user_id):
     cursor = con.cursor()
     cursor.execute(query)
     actions = cursor.fetchall()
+    con.commit()
     cursor.close()
 
     return [parse_actions(action) for action in actions]
@@ -117,6 +145,7 @@ def get_user_receipts(customer_id):
     cursor = con.cursor()
     cursor.execute(query)
     actions = cursor.fetchall()
+    con.commit()
     cursor.close()
     return [{
         'id': action[0], 
@@ -202,6 +231,7 @@ def get_product(ean):
     cursor = con.cursor()
     cursor.execute(query)
     product = cursor.fetchone()
+    con.commit()
     cursor.close()
     return {
         'id': product[0],

@@ -36,6 +36,9 @@ with open('/home/nikita/Downloads/Telegram Desktop/mock_receipt_data.csv') as f:
         INSERT INTO receipt (receipt_id, customer_id, ean, transaction_date, quantity) VALUES {single_row};"""
         cur.execute(query)
         con.commit()
+    
+    cur.close()
+    con.close()
     # for row in spamreader:
     #     if i == 0:
     #         i += 1

@@ -33,9 +33,17 @@ CREATE TABLE IF NOT EXISTS product(
     PRIMARY KEY (id)
 ); 
 
+CREATE TABLE IF NOT EXISTS daily_goal(
+    id SERIAL NOT NULL,
+    calories BIGINT,
+    PRIMARY KEY (id)
+);
+
 CREATE TABLE IF NOT EXISTS customer (
     id SERIAL NOT NULL,
-    customer_id BIGINT UNIQUE
+    customer_id BIGINT UNIQUE,
+    name VARCHAR,
+    daily_goal_id BIGINT,
     PRIMARY KEY (id)
 );
 
@@ -49,3 +57,5 @@ CREATE TABLE IF NOT EXISTS action (
     amount BIGINT,
     PRIMARY KEY (id)
 );
+
+insert into customer  (customer_id, name, daily_goal_id) values (1, 'Lama Alpaka', 1);
