@@ -10,7 +10,7 @@ action_eat = "ACTION_EAT"
 action_lose = "ACTION_LOSE"
 action_throw_away = "ACTION_THROW_AWAY"
 
-granularity = ["day","week", "month"]
+granularity = ["day","week", "month", "year"]
 
 def get_inbox(user_id):
     # process_receipts(user_id)
