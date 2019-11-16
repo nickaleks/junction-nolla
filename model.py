@@ -1,8 +1,8 @@
 import psycopg2
 import api
-from datetime import datetime
+from datetime import datetime, timedelta
 from expiration_date import get_shelf_time
-
+import functools
 con = psycopg2.connect(database="postgres", user="postgres", password="mysecretpassword", host="40.118.124.20", port="5432")
 
 action_buy = "ACTION_BUY"
@@ -10,6 +10,7 @@ action_eat = "ACTION_EAT"
 action_lose = "ACTION_LOSE"
 action_throw_away = "ACTION_THROW_AWAY"
 
+granularity = ["day","week", "month"]
 
 def get_inbox(user_id):
     # process_receipts(user_id)
@@ -370,3 +371,37 @@ def update_price(ean, price):
     cursor.execute(query)
     con.commit()
     cursor.close()
+
+def get_delta(granularity):
+    today = datetime.today()
+    d = 0
+    if granularity == "day":
+        d = today - timedelta(days=1)
+    elif granularity == "week":
+        d = today - timedelta(weeks=1)
+    elif granularity == "month":
+        d = today - timedelta(days = 31)
+    elif granularity == "year":
+        d = today - timedelta(days = 365)
+    return d.strftime('%Y-%m-%d %H:%M:%S.%f')
+
+def add_price(action):
+    action['price'] = get_product_by_id(action['product_id'])['price']
+    return action
+
+def get_waste(user_id, granularity):
+    actions = get_user_actions(user_id)
+    delta = get_delta(granularity)
+    filter_by_period = list(filter(lambda x: x['action_date'] >= delta, actions))
+    actions_with_price = list(map(add_price, filter_by_period))
+
+    waste =list(filter(lambda x: x['action_type'] == action_throw_away, actions_with_price))
+    waste_sum = functools.reduce(lambda x,y :x + y['price'],waste, 0.0)
+    all_sum = functools.reduce(lambda x,y : x + y['price'],actions_with_price, 0.0)
+
+    response = {}
+    response['result'] = waste
+    response['sum'] = waste_sum
+    response['ratio'] = waste_sum/all_sum
+    response['total'] = len(waste)
+    return response
