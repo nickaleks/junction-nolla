@@ -11,7 +11,7 @@ def serialize_not_none(obj):
     if obj is None:
         return {'error': 'entity not found' }, 404
     else:
-        return obj
+        return json.dumps(obj)
 
 @app.route('/inbox/<user_id>')
 def hello_world(user_id):

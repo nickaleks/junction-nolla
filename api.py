@@ -1,3 +1,5 @@
+import requests
+
 def get_product_by_ean(ean):
     root_url = "https://kesko.azure-api.net/v1/search/products"
     headers = {"Ocp-Apim-Subscription-Key": "f2d58b3f3e1a48ce8c1cef544eeef668"}
