@@ -53,10 +53,10 @@ def get_daily_goal_progress(user):
             weight = float(product['weight'] * 1000)
             quantity = action['amount']
             cal = float(product['energy_kcal'])
-            eaten_calories = int(cal / 100.0 * weight * quantity)
-            eaten_carbs = int(float(product['carbs']) / 100.0 * weight * quantity)
-            eaten_fats = int(float(product['fats']) / 100.0 * weight * quantity)
-            eaten_prot = int(float(product['protein']) / 100.0 * weight * quantity)
+            eaten_calories = int(cal / 100.0  * quantity)
+            eaten_carbs = int(float(product['carbs']) / 100.0 * quantity)
+            eaten_fats = int(float(product['fats']) / 100.0 * quantity)
+            eaten_prot = int(float(product['protein']) / 100.0 * quantity)
             calories_progress += eaten_calories
             carbs_progress += eaten_carbs
             fat_progress += eaten_fats
@@ -319,14 +319,16 @@ def add_action(action):
     purchase_id ,
     product_id,
     amount,
-    action_date) 
+    action_date,
+    karma) 
     VALUES (
     %(customer_id)s ,
     %(action_type)s ,
     %(purchase_id)s ,
     %(product_id)s,
     %(amount)s,
-    %(action_date)s) RETURNING id
+    %(action_date)s,
+    0) RETURNING id
     """
     cursor = con.cursor()
     cursor.execute(query, action)
@@ -360,12 +362,41 @@ def process_receipts(user_id):
 
 def create_action(action):
     add_action(action)
-    return {}
+    goals = get_daily_goal_progress(get_user(1))
+    total = goals['calories']['total']
+    progress = goals['calories']['progress']
+    # 'calories': {
+    #         'total': calories,
+    #         'progress': calories_progress
+    #     },
+    print(goals)
+    if action['action_type'] == action_eat and progress > total:
+        update_action(action, -2)
+        return {
+            'has_message': action['action_type'] == action_eat and progress > total,
+            'message': 'You have exceeded your daily limit',
+            'karma': -2
+        }
+    else:
+        return {
+            'has_message': False,
+            'message':'',
+            'karma': 0
+        }
 
 def update_price(ean, price):
     query = f"""UPDATE product
     SET price = {price}
     WHERE ean = {ean}"""
+    cursor = con.cursor()
+    cursor.execute(query)
+    con.commit()
+    cursor.close()
+
+def update_action(action, karma):
+    query = f"""update action set karma = {karma} 
+    where purchase_id = {action['purchase_id']} 
+    and product_id = {action['product_id']}"""
     cursor = con.cursor()
     cursor.execute(query)
     con.commit()
