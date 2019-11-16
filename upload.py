@@ -36,6 +36,8 @@ with open('/home/nikita/Junction-Kesko-Receipt-Data/Junction_data.csv') as f:
         rows = ""
         for row in chunk:
             single_row = f"""({row[0]}, {row[1]}, '{row[2]}', '{row[3]}', '{row[4]}', '{row[5]}', '{row[6]}', {row[7]}, '{row[8]}', '{row[9]}')"""
+            if single_row is None:
+                continue
             rows += single_row
             rows += ','
         rows = rows[:-1]
@@ -44,6 +46,9 @@ with open('/home/nikita/Junction-Kesko-Receipt-Data/Junction_data.csv') as f:
         cur.execute(query)
         current += step
         print(current)
+        if current % (step * 10) == 0:
+            print("commit")
+            con.commit()
     con.commit()
     # for row in spamreader:
     #     if i == 0:
