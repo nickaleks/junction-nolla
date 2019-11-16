@@ -79,28 +79,20 @@ def get_product_by_id(product_id):
 
 def get_current_products(user_id):
     actions = get_user_actions(user_id)
-    purchases = []
+    purchases = {}
     for action in actions:
         if action['action_type'] == action_buy:
-            purchases.append({'product': get_product_by_id(action['product_id']), 'amount_left': action['amount']})
+            purchases[action['purchase_id']] = {'product': get_product_by_id(action['product_id']), 'amount_left': action['amount']}
     
-
-    return purchases
-    # for action in actions:
-    #     current = 0
-    #     if action['action_type'] == action_buy:
-    #         current = purchases.setdefault(action['id'], 0)
-    #     else:
-    #         current -= action['amount']
-    #     products[action['id']] = current
-    # print(products)
-    # result = []
-    # for (product_id, amount) in products.items():
-    #     result.append({ 'product': get_product_by_id(product_id), 'amount': amount})
-    # return result
+    for action in actions:
+        if action['action_type'] != action_buy:
+            if purchases[action['purchase_id']]:
+                purchases[action['purchase_id']]['amount_left'] -= action['amount']
+            
+    return list(purchases.values())
 
 def get_user_actions(user_id):
-    query = f"SELECT id, customer_id, action_type, product_id, amount FROM action WHERE customer_id = {user_id}"
+    query = f"SELECT id, customer_id, action_type, product_id, amount, purchase_id, action_date FROM action WHERE customer_id = {user_id}"
     cursor = con.cursor()
     cursor.execute(query)
     actions = cursor.fetchall()
@@ -114,7 +106,9 @@ def parse_actions(action_row):
         'customer_id': action_row[1],
         'action_type': action_row[2],
         'product_id': action_row[3],
-        'amount': action_row[4]
+        'amount': action_row[4],
+        'purchase_id': action_row[5],
+        'action_date': action_row[6]
     }
 
 def get_user_receipts(customer_id):
@@ -278,3 +272,7 @@ def process_receipts(user_id):
         add_action(action)
         
     return product_ids
+
+def create_action(action):
+    add_action(action)
+    return {}
