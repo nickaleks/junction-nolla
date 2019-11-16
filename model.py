@@ -78,7 +78,8 @@ def get_product_by_id(product_id):
     carbs ,
     picture_url ,
     category_id ,
-    subcategory_id FROM product WHERE id = {product_id}"""
+    subcategory_id,
+    price FROM product WHERE id = {product_id}"""
     cursor = con.cursor()
     cursor.execute(query)
     product = cursor.fetchone()
@@ -105,7 +106,8 @@ def get_product_by_id(product_id):
         'carbs': product[17],
         'picture_url': product[18],
         'category_id': product[19],
-        'subcategory_id': product[20]
+        'subcategory_id': product[20],
+        'price': product[21]
     }
 
 
@@ -182,7 +184,8 @@ def add_product(product):
     carbs ,
     picture_url ,
     category_id ,
-    subcategory_id) 
+    subcategory_id ,
+    price)
     VALUES (
     %(ean)s,
     %(name)s,
@@ -203,7 +206,8 @@ def add_product(product):
     %(carbs)s,
     %(picture_url)s,
     %(category_id)s,
-    %(subcategory_id)s) RETURNING id
+    %(subcategory_id)s,
+    %(price)s) RETURNING id
     """
     cursor = con.cursor()
     cursor.execute(query, product)
@@ -232,7 +236,8 @@ def get_product(ean):
     carbs ,
     picture_url ,
     category_id ,
-    subcategory_id FROM product WHERE ean = {ean}"""
+    subcategory_id,
+    price FROM product WHERE ean = {ean}"""
     cursor = con.cursor()
     cursor.execute(query)
     product = cursor.fetchone()
@@ -259,7 +264,8 @@ def get_product(ean):
         'carbs': product[17],
         'picture_url': product[18],
         'category_id': product[19],
-        'subcategory_id': product[20]
+        'subcategory_id': product[20],
+        'price': product[21]
     }
 
 def add_action(action):
@@ -311,3 +317,12 @@ def process_receipts(user_id):
 def create_action(action):
     add_action(action)
     return {}
+
+def update_price(ean, price):
+    query = f"""UPDATE product
+    SET price = {price}
+    WHERE ean = {ean}"""
+    cursor = con.cursor()
+    cursor.execute(query)
+    con.commit()
+    cursor.close()
