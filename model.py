@@ -131,7 +131,7 @@ def get_current_products(user_id):
                 'product': get_product_by_id(action['product_id']),
                 'amount_left': action['amount'],
                 'purchase_id': action['purchase_id'],
-                'exp_time': cal_exp_time(action)}
+                'exp_time': calc_exp_time(action)}
 
     for action in actions:
         if action['action_type'] != action_buy:
