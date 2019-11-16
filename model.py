@@ -1,6 +1,7 @@
 import psycopg2
 import api
 from datetime import datetime
+from expiration_date import get_shelf_time
 
 con = psycopg2.connect(database="postgres", user="postgres", password="mysecretpassword", host="40.118.124.20", port="5432")
 
@@ -79,7 +80,8 @@ def get_product_by_id(product_id):
     picture_url ,
     category_id ,
     subcategory_id,
-    price FROM product WHERE id = {product_id}"""
+    price,
+    shelf_time FROM product WHERE id = {product_id}"""
     cursor = con.cursor()
     cursor.execute(query)
     product = cursor.fetchone()
@@ -107,22 +109,35 @@ def get_product_by_id(product_id):
         'picture_url': product[18],
         'category_id': product[19],
         'subcategory_id': product[20],
-        'price': product[21]
+        'price': product[21],
+        'shelf_time': product[22]
     }
 
+def calc_exp_time(action):
+    today = datetime.today()
+    created_at = action.get('action_date')
+    created_at = datetime.strptime(created_at, '%Y-%m-%d %H:%M:%S.%f')
+    delta = today - created_at
+    product_id = action['product_id']
+    shelf_time = get_product_by_id(product_id)['shelf_time']
+    return shelf_time - delta.days
 
 def get_current_products(user_id):
     actions = get_user_actions(user_id)
     purchases = {}
     for action in actions:
         if action['action_type'] == action_buy:
-            purchases[action['purchase_id']] = {'product': get_product_by_id(action['product_id']), 'amount_left': action['amount'], 'purchase_id': action['purchase_id']}
-    
+            purchases[action['purchase_id']] = {
+                'product': get_product_by_id(action['product_id']),
+                'amount_left': action['amount'],
+                'purchase_id': action['purchase_id'],
+                'exp_time': cal_exp_time(action)}
+
     for action in actions:
         if action['action_type'] != action_buy:
             if purchases[action['purchase_id']]:
                 purchases[action['purchase_id']]['amount_left'] -= action['amount']
-            
+
     return list(purchases.values())
 
 def get_user_actions(user_id):
@@ -185,7 +200,8 @@ def add_product(product):
     picture_url ,
     category_id ,
     subcategory_id ,
-    price)
+    price ,
+    shelf_time)
     VALUES (
     %(ean)s,
     %(name)s,
@@ -207,7 +223,8 @@ def add_product(product):
     %(picture_url)s,
     %(category_id)s,
     %(subcategory_id)s,
-    %(price)s) RETURNING id
+    %(price)s,
+    %(shelf_time)s) RETURNING id
     """
     cursor = con.cursor()
     cursor.execute(query, product)
@@ -237,7 +254,8 @@ def get_product(ean):
     picture_url ,
     category_id ,
     subcategory_id,
-    price FROM product WHERE ean = {ean}"""
+    price,
+    shelf_time FROM product WHERE ean = {ean}"""
     cursor = con.cursor()
     cursor.execute(query)
     product = cursor.fetchone()
@@ -265,7 +283,8 @@ def get_product(ean):
         'picture_url': product[18],
         'category_id': product[19],
         'subcategory_id': product[20],
-        'price': product[21]
+        'price': product[21],
+        'shelf_tife': product[22]
     }
 
 def add_action(action):
