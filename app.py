@@ -22,5 +22,13 @@ def inbox(user_id):
 def create_action():
     return model.create_action(json.loads(request.data))
 
+@app.route('/user/<user_id>')
+def get_user(user_id):
+    return serialize_not_none(model.get_user(user_id))
+
+@app.route('/user/<user_id>/daily_goal')
+def get_user_goal(user_id):
+    return serialize_not_none(model.get_daily_goal_progress(model.get_user(user_id)))
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
