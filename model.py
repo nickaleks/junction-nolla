@@ -15,7 +15,7 @@ def get_inbox(user_id):
     user = get_user(user_id)
     current_products = get_current_products(user_id)
     daily_goal = get_daily_goal_progress(user)
-    return {'products': current_products, 'recipes': [], 'daily_goal': daily_goal}
+    return {'products': [prod for prod in current_products if prod['amount_left'] > 0], 'recipes': [], 'daily_goal': daily_goal}
 
 def get_user(user_id):
     query = f"SELECT id, customer_id, name, daily_goal_id FROM customer WHERE id = {user_id}"
@@ -320,15 +320,15 @@ def process_receipts(user_id):
             print("failed to insert")
             con.rollback()
             pass
+        product = get_product(receipt['ean'])
         action = {
             'customer_id': customer,
             'action_type': action_buy,
             'purchase_id': receipt['id'],
             'action_date': receipt['transaction_date'],
-            'product_id': get_product(receipt['ean'])['id'],
+            'product_id': product['id'],
             'amount': receipt['quantity']
         }
-        # print(action)
         add_action(action)
         
     return product_ids
