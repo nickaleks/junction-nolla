@@ -327,7 +327,7 @@ def process_receipts(user_id):
             'purchase_id': receipt['id'],
             'action_date': receipt['transaction_date'],
             'product_id': product['id'],
-            'amount': receipt['quantity']
+            'amount': receipt['quantity'] * int(product['weight'] * 1000)
         }
         add_action(action)
         
