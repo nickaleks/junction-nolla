@@ -10,7 +10,7 @@ action_eat = "ACTION_EAT"
 action_lose = "ACTION_LOSE"
 action_throw_away = "ACTION_THROW_AWAY"
 
-granularity = ["day","week", "month"]
+granularity = ["day","week", "month", "year"]
 
 def get_inbox(user_id):
     # process_receipts(user_id)
@@ -420,18 +420,30 @@ def add_price(action):
     action['price'] = get_product_by_id(action['product_id'])['price']
     return action
 
+def prepare_res(res):
+    resp = {}
+    for action in res:
+        product_id = action['product_id']
+        stored = resp.get(product_id)
+        if stored:
+            stored['price'] = stored['price']+stored['price']
+            resp[product_id] = stored
+        else:
+            product = get_product_by_id(product_id)
+            resp[product_id] = product
+    return list(resp.values())
+
 def get_waste(user_id, granularity):
     actions = get_user_actions(user_id)
     delta = get_delta(granularity)
     filter_by_period = list(filter(lambda x: x['action_date'] >= delta, actions))
     actions_with_price = list(map(add_price, filter_by_period))
-
     waste =list(filter(lambda x: x['action_type'] == action_throw_away, actions_with_price))
     waste_sum = functools.reduce(lambda x,y :x + y['price'],waste, 0.0)
     all_sum = functools.reduce(lambda x,y : x + y['price'],actions_with_price, 0.0)
 
     response = {}
-    response['result'] = waste
+    response['result'] = prepare_res(waste)
     response['sum'] = waste_sum
     response['ratio'] = waste_sum/all_sum
     response['total'] = len(waste)
