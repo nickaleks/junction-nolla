@@ -15,10 +15,7 @@ def get_inbox(user_id):
     user = get_user(user_id)
     current_products = get_current_products(user_id)
     daily_goal = get_daily_goal_progress(user)
-    return {'products': current_products, 'recipes': [], 'daily_goal': {
-        'goal': daily_goal[0],
-        'progress': daily_goal[1]
-    }}
+    return {'products': current_products, 'recipes': [], 'daily_goal': daily_goal}
 
 def get_user(user_id):
     query = f"SELECT id, customer_id, name, daily_goal_id FROM customer WHERE id = {user_id}"
@@ -36,24 +33,52 @@ def is_today(date):
     return d.date() == datetime.today().date()
 
 def get_daily_goal_progress(user):
-    query = f"SELECT calories FROM daily_goal WHERE id = {user['daily_goal_id']}"
+    query = f"SELECT calories, carbs, fats, proteins FROM daily_goal WHERE id = {user['daily_goal_id']}"
     cursor = con.cursor()
     cursor.execute(query)
-    calories = cursor.fetchone()[0]
+    calories, carbs, fats, proteins = cursor.fetchone()
     con.commit()
     cursor.close()
     actions = get_user_actions(user['id'])
-    progress = 0
+    calories_progress = 0
+    carbs_progress = 0
+    fat_progress = 0
+    protein_progress = 0
+
     for action in actions:
         if action['action_type'] == action_eat and is_today(action['action_date']):
             product = get_product_by_id(action['product_id'])
             # kcal / 100 * weight * quantity
-            cal = float(product['energy_kcal'])
-            weight = float(product['weight'])
+            weight = float(product['weight'] * 1000)
             quantity = action['amount']
-            eaten = int(cal / 100.0 * weight * quantity)
-            progress += eaten
-    return calories, progress
+            cal = float(product['energy_kcal'])
+            eaten_calories = int(cal / 100.0 * weight * quantity)
+            eaten_carbs = int(float(product['carbs']) / 100.0 * weight * quantity)
+            eaten_fats = int(float(product['fats']) / 100.0 * weight * quantity)
+            eaten_prot = int(float(product['protein']) / 100.0 * weight * quantity)
+            calories_progress += eaten_calories
+            carbs_progress += eaten_carbs
+            fat_progress += eaten_fats
+            protein_progress += eaten_prot
+
+    return {
+        'calories': {
+            'total': calories,
+            'progress': calories_progress
+        },
+        'carbs': {
+            'total': carbs,
+            'progress': carbs_progress
+        },
+        'fats': {
+            'total': fats,
+            'progress': fat_progress
+        },
+        'proteins': {
+            'total': proteins,
+            'progress': protein_progress
+        }
+    }
 
 
 def get_product_by_id(product_id):

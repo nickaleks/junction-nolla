@@ -36,6 +36,9 @@ CREATE TABLE IF NOT EXISTS product(
 CREATE TABLE IF NOT EXISTS daily_goal(
     id SERIAL NOT NULL,
     calories BIGINT,
+    carbs BIGINT,
+    fats BIGINT,
+    proteins BIGINT,
     PRIMARY KEY (id)
 );
 
