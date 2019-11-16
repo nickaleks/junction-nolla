@@ -1,5 +1,7 @@
 import psycopg2
 import api
+from datetime import datetime
+
 con = psycopg2.connect(database="postgres", user="postgres", password="mysecretpassword", host="40.118.124.20", port="5432")
 
 action_buy = "ACTION_BUY"
@@ -29,6 +31,10 @@ def get_user(user_id):
         return None
     return {'id': user[0], 'customer_id': user[1], 'name': user[2], 'daily_goal_id': user[3] }
 
+def is_today(date):
+    d = datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
+    return d.date() == datetime.today().date()
+
 def get_daily_goal_progress(user):
     query = f"SELECT calories FROM daily_goal WHERE id = {user['daily_goal_id']}"
     cursor = con.cursor()
@@ -39,7 +45,7 @@ def get_daily_goal_progress(user):
     actions = get_user_actions(user['id'])
     progress = 0
     for action in actions:
-        if action['action_type'] == action_eat and today(action['action_date']):
+        if action['action_type'] == action_eat and is_today(action['action_date']):
             product = get_product_by_id(action['product_id'])
             # kcal / 100 * weight * quantity
             cal = float(product['energy_kcal'])
@@ -48,7 +54,6 @@ def get_daily_goal_progress(user):
             eaten = int(cal / 100.0 * weight * quantity)
             progress += eaten
     return calories, progress
-            
 
 
 def get_product_by_id(product_id):
