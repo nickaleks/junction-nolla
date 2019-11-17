@@ -407,17 +407,23 @@ def get_delta(granularity):
     today = datetime.today()
     d = 0
     if granularity == "day":
-        d = today - timedelta(days=1)
+        d = today - timedelta(days=75)
     elif granularity == "week":
-        d = today - timedelta(weeks=1)
+        d = today - timedelta(days=82)
     elif granularity == "month":
-        d = today - timedelta(days = 31)
+        d = today - timedelta(days = 105)
     elif granularity == "year":
         d = today - timedelta(days = 365)
     return d.strftime('%Y-%m-%d %H:%M:%S.%f')
 
 def add_price(action):
-    action['price'] = get_product_by_id(action['product_id'])['price']
+    action['product'] = get_product_by_id(action['product_id'])
+    price = 0
+    if action['product']['weight'] !=0.0:
+        price = action['product']['price']*action['amount']/(action['product']['weight']*1000)
+    else:
+        price = 0
+    action['price'] = price
     return action
 
 def prepare_res(res):
@@ -426,10 +432,11 @@ def prepare_res(res):
         product_id = action['product_id']
         stored = resp.get(product_id)
         if stored:
-            stored['price'] = stored['price']+stored['price']
+            stored['price'] = stored['price']+action['price']
             resp[product_id] = stored
         else:
-            product = get_product_by_id(product_id)
+            product = action['product']
+            product['price'] = action['price']
             resp[product_id] = product
     return list(resp.values())
 
@@ -442,9 +449,13 @@ def get_waste(user_id, granularity):
     waste_sum = functools.reduce(lambda x,y :x + y['price'],waste, 0.0)
     all_sum = functools.reduce(lambda x,y : x + y['price'],actions_with_price, 0.0)
 
+    ratio = 0.0
+    if all_sum!=0:
+        ratio = waste_sum/all_sum
+
     response = {}
     response['result'] = prepare_res(waste)
     response['sum'] = waste_sum
-    response['ratio'] = waste_sum/all_sum
+    response['ratio'] = ratio
     response['total'] = len(waste)
     return response
