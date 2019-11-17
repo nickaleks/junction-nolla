@@ -8,7 +8,7 @@ con = psycopg2.connect(database="postgres", user="postgres", password="mysecretp
 action_buy = "ACTION_BUY"
 action_eat = "ACTION_EAT"
 action_lose = "ACTION_LOSE"
-action_throw_away = "ACTION_THROW_AWAY"
+action_waste = "ACTION_WASTE"
 
 granularity = ["day","week", "month", "year"]
 
@@ -438,7 +438,7 @@ def get_waste(user_id, granularity):
     delta = get_delta(granularity)
     filter_by_period = list(filter(lambda x: x['action_date'] >= delta, actions))
     actions_with_price = list(map(add_price, filter_by_period))
-    waste =list(filter(lambda x: x['action_type'] == action_throw_away, actions_with_price))
+    waste =list(filter(lambda x: x['action_type'] == action_waste, actions_with_price))
     waste_sum = functools.reduce(lambda x,y :x + y['price'],waste, 0.0)
     all_sum = functools.reduce(lambda x,y : x + y['price'],actions_with_price, 0.0)
 
