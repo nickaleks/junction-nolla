@@ -3,7 +3,9 @@ import api
 from datetime import datetime, timedelta
 from expiration_date import get_shelf_time
 import functools
-con = psycopg2.connect(database="postgres", user="postgres", password="mysecretpassword", host="40.118.124.20", port="5432")
+
+def get_conn():
+    return psycopg2.connect(database="postgres", user="postgres", password="mysecretpassword", host="40.118.124.20", port="5432")
 
 action_buy = "ACTION_BUY"
 action_eat = "ACTION_EAT"
@@ -20,6 +22,7 @@ def get_inbox(user_id):
     return {'products': [prod for prod in current_products if prod['amount_left'] > 0], 'recipes': [], 'daily_goal': daily_goal}
 
 def get_user(user_id):
+    con = get_conn()
     query = f"SELECT id, customer_id, name, daily_goal_id FROM customer WHERE id = {user_id}"
     cursor = con.cursor()
     cursor.execute(query)
@@ -28,6 +31,7 @@ def get_user(user_id):
     cursor.close()
     if not user:
         return None
+    con.close()
     return {'id': user[0], 'customer_id': user[1], 'name': user[2], 'daily_goal_id': user[3] }
 
 def is_today(date):
@@ -35,6 +39,7 @@ def is_today(date):
     return d.date() == datetime.today().date()
 
 def get_daily_goal_progress(user):
+    con = get_conn()
     query = f"SELECT calories, carbs, fats, proteins FROM daily_goal WHERE id = {user['daily_goal_id']}"
     cursor = con.cursor()
     cursor.execute(query)
@@ -62,7 +67,7 @@ def get_daily_goal_progress(user):
             carbs_progress += eaten_carbs
             fat_progress += eaten_fats
             protein_progress += eaten_prot
-
+    con.close()
     return {
         'calories': {
             'total': calories,
@@ -84,6 +89,7 @@ def get_daily_goal_progress(user):
 
 
 def get_product_by_id(product_id):
+    con = get_conn()
     query = f"""SELECT 
     id,
     ean ,
@@ -113,6 +119,7 @@ def get_product_by_id(product_id):
     product = cursor.fetchone()
     con.commit()
     cursor.close()
+    con.close()
     return {
         'id': product[0],
         'ean': product[1],
@@ -179,23 +186,26 @@ def parse_actions(action_row):
     }
 
 def get_user_actions(user_id):
+    con = get_conn()
     query = f"SELECT id, customer_id, action_type, product_id, amount, purchase_id, action_date, karma FROM action WHERE customer_id = {user_id}"
     cursor = con.cursor()
     cursor.execute(query)
     actions = cursor.fetchall()
     con.commit()
     cursor.close()
+    con.close()
 
     return [parse_actions(action) for action in actions]
 
 def get_user_receipts(customer_id):
-    
+    con = get_conn()
     query = f"SELECT id, receipt_id, customer_id, ean, transaction_date, quantity FROM receipt WHERE customer_id = {customer_id}"
     cursor = con.cursor()
     cursor.execute(query)
     actions = cursor.fetchall()
     con.commit()
     cursor.close()
+    con.close()
     return [{
         'id': action[0], 
         'receipt_id': action[1], 
@@ -253,10 +263,12 @@ def add_product(product):
     %(price)s,
     %(shelf_time)s) RETURNING id
     """
+    con = get_conn()
     cursor = con.cursor()
     cursor.execute(query, product)
     con.commit()
     cursor.close()
+    con.close()
 
 def get_product(ean):
     query = f"""SELECT 
@@ -283,11 +295,13 @@ def get_product(ean):
     subcategory_id,
     price,
     shelf_time FROM product WHERE ean = {ean}"""
+    con = get_conn()
     cursor = con.cursor()
     cursor.execute(query)
     product = cursor.fetchone()
     con.commit()
     cursor.close()
+    con.close()
     return {
         'id': product[0],
         'ean': product[1],
@@ -331,11 +345,13 @@ def add_action(action):
     %(amount)s,
     %(action_date)s,
     0) RETURNING id
-    """
+    """       
+    con = get_conn()
     cursor = con.cursor()
     cursor.execute(query, action)
     con.commit()
     cursor.close()
+    con.close()
 
 def process_receipts(user_id):
     customer = get_user(user_id)['customer_id']
@@ -347,7 +363,6 @@ def process_receipts(user_id):
             product_ids.append(add_product(product))
         except:
             print("failed to insert")
-            con.rollback()
             pass
         product = get_product(receipt['ean'])
         action = {
@@ -386,7 +401,8 @@ def create_action(action):
             'karma': 0
         }
 
-def update_price(ean, price):
+def update_price(ean, price):       
+    con = get_conn()
     query = f"""UPDATE product
     SET price = {price}
     WHERE ean = {ean}"""
@@ -394,8 +410,10 @@ def update_price(ean, price):
     cursor.execute(query)
     con.commit()
     cursor.close()
+    con.close()
 
-def update_action(action, karma):
+def update_action(action, karma):        
+    con = get_conn()
     query = f"""update action set karma = {karma} 
     where purchase_id = {action['purchase_id']} 
     and product_id = {action['product_id']}"""
@@ -403,6 +421,7 @@ def update_action(action, karma):
     cursor.execute(query)
     con.commit()
     cursor.close()
+    con.close()
 
 def get_delta(granularity):
     today = datetime.today()
