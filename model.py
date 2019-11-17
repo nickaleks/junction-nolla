@@ -407,11 +407,11 @@ def get_delta(granularity):
     today = datetime.today()
     d = 0
     if granularity == "day":
-        d = today - timedelta(days=1)
+        d = today - timedelta(days=75)
     elif granularity == "week":
-        d = today - timedelta(weeks=1)
+        d = today - timedelta(days=82)
     elif granularity == "month":
-        d = today - timedelta(days = 31)
+        d = today - timedelta(days = 105)
     elif granularity == "year":
         d = today - timedelta(days = 365)
     return d.strftime('%Y-%m-%d %H:%M:%S.%f')
