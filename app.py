@@ -37,5 +37,9 @@ def get_user_waste(user_id, granularity):
     else:
         return {'error': 'entity not found' }, 404
 
+@app.route('/user/<user_id>/karma')
+def get_user_karma(user_id):
+    return serialize_not_none(model.get_karma(user_id))
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0')

@@ -166,16 +166,6 @@ def get_current_products(user_id):
 
     return list(purchases.values())
 
-def get_user_actions(user_id):
-    query = f"SELECT id, customer_id, action_type, product_id, amount, purchase_id, action_date FROM action WHERE customer_id = {user_id}"
-    cursor = con.cursor()
-    cursor.execute(query)
-    actions = cursor.fetchall()
-    con.commit()
-    cursor.close()
-
-    return [parse_actions(action) for action in actions]
-
 def parse_actions(action_row):
     return {
         'id': action_row[0],
@@ -184,8 +174,19 @@ def parse_actions(action_row):
         'product_id': action_row[3],
         'amount': action_row[4],
         'purchase_id': action_row[5],
-        'action_date': action_row[6]
+        'action_date': action_row[6],
+        'karma': action_row[7]
     }
+
+def get_user_actions(user_id):
+    query = f"SELECT id, customer_id, action_type, product_id, amount, purchase_id, action_date, karma FROM action WHERE customer_id = {user_id}"
+    cursor = con.cursor()
+    cursor.execute(query)
+    actions = cursor.fetchall()
+    con.commit()
+    cursor.close()
+
+    return [parse_actions(action) for action in actions]
 
 def get_user_receipts(customer_id):
     
@@ -458,4 +459,13 @@ def get_waste(user_id, granularity):
     response['sum'] = waste_sum
     response['ratio'] = ratio
     response['total'] = len(waste)
+    return response
+
+def get_karma(user_id):
+    actions = get_user_actions(user_id)
+    karma = list(filter(lambda x: x['karma'] != 0, actions))
+    response = {}
+    response['result'] = karma
+    response['sum'] = functools.reduce(lambda x,y : x + y['karma'],karma, 0)
+    response['total'] = len(karma)
     return response
